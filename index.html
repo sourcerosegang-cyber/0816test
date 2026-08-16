@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학급 청소당번 스마트 추첨기</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .number-ball {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .number-ball:hover {
+      transform: translateY(-5px) scale(1.05);
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+    }
+
+    .btn-draw-glow {
+      animation: pulse-glow 2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex items-center justify-center p-4 sm:p-6">
+
+  <div class="container max-w-2xl mx-auto">
+    <!-- 메인 카드 -->
+    <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+      
+      <!-- 상단 장식 빛 효과 -->
+      <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- 헤더 영역 -->
+      <div class="text-center mb-8 relative z-10">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white shadow-lg mb-4">
+          <i class="bi bi-stars text-3xl"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
+          학급 청소당번 스마트 추첨기
+        </h1>
+        <p class="text-slate-400 text-sm sm:text-base">
+          공정하고 투명한 학급 번호 랜덤 추첨 시스템
+        </p>
+      </div>
+
+      <!-- 설정을 보여주는 정보 배지 -->
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">전체 대상</div>
+            <div class="text-base font-bold text-slate-200">1번 ~ 20번</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl">
+            <i class="bi bi-person-check-fill"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">선발 인원</div>
+            <div class="text-base font-bold text-slate-200">5명</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 추첨 버튼 -->
+      <div class="mb-8">
+        <button id="drawBtn" onclick="handleDraw()" class="btn-draw-glow w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl transition-all duration-300 flex items-center justify-center gap-2 group">
+          <i class="bi bi-shuffle text-xl group-hover:rotate-180 transition-transform duration-500"></i>
+          <span>청소당번 추첨 시작</span>
+        </button>
+      </div>
+
+      <!-- 결과 표시 영역 -->
+      <div class="border-t border-slate-700/60 pt-6">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+            <i class="bi bi-trophy text-amber-400"></i> 최종 선정 명단
+          </span>
+          <span id="statusBadge" class="badge bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full text-xs font-normal">
+            대기 중
+          </span>
+        </div>
+
+        <!-- 결과 볼 리스트 -->
+        <div id="resultBox" class="flex flex-wrap justify-center gap-3 sm:gap-4 min-h-[90px] items-center p-4 rounded-2xl bg-slate-900/40 border border-slate-800">
+          <div class="text-slate-500 text-sm flex items-center gap-2">
+            <i class="bi bi-info-circle"></i> 추첨 버튼을 눌러 당번을 뽑아주세요.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_STUDENTS = 20;
+    const SELECT_COUNT = 5;
+
+    // 번호 추첨 로직
+    function getRandomNumbers() {
+      const selected = new Set();
+      while (selected.size < SELECT_COUNT) {
+        const num = Math.floor(Math.random() * TOTAL_STUDENTS) + 1;
+        selected.add(num);
+      }
+      return Array.from(selected).sort((a, b) => a - b);
+    }
+
+    // 메인 추첨 실행 함수
+    async function handleDraw() {
+      // 1. 추첨 확인 SweetAlert2
+      const confirmResult = await Swal.fire({
+        title: '청소당번을 추첨하시겠습니까?',
+        text: '1번부터 20번 중 5명을 랜덤으로 선발합니다.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="bi bi-check-circle-fill me-1"></i> 추첨 시작',
+        cancelButtonText: '취소',
+        background: '#1e293b',
+        color: '#f8fafc',
+        customClass: {
+          popup: 'rounded-3xl border border-slate-700 shadow-2xl'
+        }
+      });
+
+      if (!confirmResult.isConfirmed) return;
+
+      // 2. 카운트다운 및 추첨 로딩 SweetAlert2
+      let timerInterval;
+      Swal.fire({
+        title: '당번 추첨 진행 중...',
+        html: '<div class="text-slate-400 mt-2">공정한 추첨을 위해 번호를 섞고 있습니다.<br><b class="text-blue-400 text-2xl mt-2 inline-block"></b></div>',
+        timer: 2000,
+        timerProgressBar: true,
+        background: '#1e293b',
+        color: '#f8fafc',
+        allowOutsideClick: false,
+        customClass: {
+          popup: 'rounded-3xl border border-slate-700 shadow-2xl'
+        },
+        didOpen: () => {
+          Swal.showLoading();
+          const timer = Swal.getHtmlContainer().querySelector('b');
+          timerInterval = setInterval(() => {
+            const randomTmp = Math.floor(Math.random() * TOTAL_STUDENTS) + 1;
+            if (timer) timer.textContent = `${randomTmp}번`;
+          }, 80);
+        },
+        willClose: () => {
+          clearInterval(timerInterval);
+        }
+      }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.timer) {
+          showResults();
+        }
+      });
+    }
+
+    // 결과 화면 출력 및 축하 알림
+    function showResults() {
+      const selectedNumbers = getRandomNumbers();
+      const resultBox = document.getElementById('resultBox');
+      const statusBadge = document.getElementById('statusBadge');
+
+      // 상태 변경
+      statusBadge.className = 'badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-semibold';
+      statusBadge.innerHTML = '<i class="bi bi-check2-all me-1"></i> 추첨 완료';
+
+      // 결과 볼 렌더링
+      resultBox.innerHTML = '';
+      selectedNumbers.forEach((num, index) => {
+        const ball = document.createElement('div');
+        ball.className = 'number-ball w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white font-extrabold text-xl sm:text-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 border border-white/20';
+        ball.innerText = `${num}번`;
+        
+        // 애니메이션 시차 적용
+        ball.style.opacity = '0';
+        ball.style.transform = 'scale(0.5)';
+        resultBox.appendChild(ball);
+
+        setTimeout(() => {
+          ball.style.opacity = '1';
+          ball.style.transform = 'scale(1)';
+        }, index * 100);
+      });
+
+      // 3. 최종 축하 SweetAlert2
+      setTimeout(() => {
+        const namesFormatted = selectedNumbers.map(n => `<span class="inline-block bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-xl px-3 py-1 font-bold m-1">${n}번</span>`).join('');
+        
+        Swal.fire({
+          title: '🎉 축하합니다! 🎉',
+          html: `
+            <div class="my-3 text-slate-300">오늘의 청소당번으로 선정되었습니다:</div>
+            <div class="my-4">${namesFormatted}</div>
+            <div class="text-xs text-slate-400">깨끗한 교실 환경을 위해 수고해주시기 바랍니다.</div>
+          `,
+          icon: 'success',
+          confirmButtonText: '확인',
+          confirmButtonColor: '#10b981',
+          background: '#1e293b',
+          color: '#f8fafc',
+          customClass: {
+            popup: 'rounded-3xl border border-slate-700 shadow-2xl'
+          }
+        });
+      }, 600);
+    }
+  </script>
+</body>
+</html>
